@@ -43,7 +43,7 @@ size_t dfs(size_t node_number, node_T *graph) {
     current_node->visited = true;
     
     node_T *neigh_node;
-    // Warning! This algorithm check number of neighbors of individual nodes based on fact that everyone neigh_T should have cost diffrent than zero, so all node must have at least one empty element in the graph array.
+    // Warning! This algorithm check number of neighbors of individual nodes based on fact that each neigh_T element should have cost diffrent than zero, so all node must have at least one empty element in the graph array.
     for (size_t neigh = 0U; (current_node->neigh[neigh].cost != 0) && !graph_get_node(current_node->neigh[neigh].node, &neigh_node); neigh++) {
         if (!neigh_node->visited) {
             if (return_counter) {

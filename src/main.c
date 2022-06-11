@@ -6,7 +6,7 @@
 #include "dfs.h"
 
 /* WARNING!
- * Algorithm check number of neighbors of individual nodes based on fact that everyone neigh_T should have cost diffrent than zero, so all node must have at least one empty element in the graph array.
+ * Algorithm check number of neighbors of individual nodes based on fact that each neigh_T element should have cost diffrent than zero, so all node must have at least one empty element in the graph array.
  * Node numbering cannot start from zero.
 **/
 
