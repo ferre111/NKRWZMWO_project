@@ -5,10 +5,16 @@
 
 #include "file_read.h"
 
+/* WARNING!
+ * Algorithm check number of neighbors of individual nodes based on fact that everyone neigh_T should have cost diffrent than zero, so all node must have at least one empty element in the graph array.
+ * Node numbering cannot start from zero.
+**/
+
 #define GRAPH_FILE_NAME "/home/kwit666/Documents/Karol/Studia/Semestr 8/NKRWZMWO/projekt/graph.txt"
-#define NODE_NUMBER 7
+#define NODES_NUMBER 7
 #define MAX_NEIGH 10
 #define NODE_NUMBER_POWER 3125
+
 #define MAX_COST 6
 typedef struct {
     size_t node;
@@ -29,9 +35,10 @@ typedef struct {
 typedef struct {
     size_t cost;
     edge_T edge[MAX_NEIGH + 1]; // this '+1' is required during checking neighbors number in dfs function
+    size_t number_of_visited_chambers;
 } path_with_cost_T; 
 
-node_T graph[NODE_NUMBER] = {
+node_T graph[NODES_NUMBER] = {
     {.base_node = 1,    .neigh[0] = {.node = 2, .cost = 3}},
     {.base_node = 2,    .neigh[0] = {.node = 1, .cost = 2},
                         .neigh[1] = {.node = 3, .cost = 1},
@@ -50,38 +57,17 @@ node_T graph[NODE_NUMBER] = {
                         .neigh[1] = {.node = 2, .cost = 6},}
 };
 
-// neigh_T graph[NODE_NUMBER][MAX_NEIGH] = {
-//     [1] = {{.node = 2, .cost = 3}},
-//     [2] = {
-//             [0] = {.node = 1, .cost = 2},
-//             [1] = {.node = 3, .cost = 1},
-//             [2] = {.node = 4, .cost = 3},
-//             [3] = {.node = 5, .cost = 7},
-//             [4] = {.node = 7, .cost = 7}
-//     },
-//     [3] = {
-//             [0] = {.node = 2, .cost = 1},
-//             [1] = {.node = 4, .cost = 4},
-//     },
-//     [4] = {
-//             [0] = {.node = 2, .cost = 1},
-//             [1] = {.node = 3, .cost = 4},
-//             [2] = {.node = 5, .cost = 8},
-//     },
-//     [5] = {
-//             [0] = {.node = 2, .cost = 6},
-//             [1] = {.node = 4, .cost = 9},
-//     },
-//     [6] = {
-//             [0] = {.node = 7, .cost = 6}
-//     },
-//     [7] = {
-//             [0] = {.node = 6, .cost = 6},
-//             [1] = {.node = 2, .cost = 6}
-//     }
-// };
-
 path_with_cost_T paths_with_cost[NODE_NUMBER_POWER];
+
+int graph_get_node(size_t node_number, node_T **node_ptr) {
+    for (size_t node = 0; node < NODES_NUMBER; node++) {
+        if (node_number == graph[node].base_node) {
+            *node_ptr = &graph[node];
+            return 0;
+        }
+    }
+    return -1;
+}
 
 size_t dfs(size_t node_number) {
     static size_t edge_iter = 0;
@@ -90,26 +76,13 @@ size_t dfs(size_t node_number) {
     node_T *current_node;
 
     // find current node in graph array
-    for (size_t node = 0; node < NODE_NUMBER; node++) {
-        if (node_number == graph[node].base_node) {
-            current_node = &graph[node];
-        }
-    }
-
+    graph_get_node(node_number, &current_node);
     current_node->visited = true;
-
-    // here we check how much neighbors have current node, to do that all node must have at least one empty element in the array
-    size_t node_neigh_num = 0U;
-    for (size_t neigh = 0U; neigh < MAX_NEIGH; neigh++) {
-        if (current_node->neigh[neigh].cost == 0U) {
-            node_neigh_num = neigh;
-            break;
-        }
-    }
-
-    for (size_t neigh = 0U; neigh < node_neigh_num; neigh++) {
-        // if (!visited[graph[current_node][neigh].node]) {
-        if (!graph[current_node->neigh[neigh].node].visited) {
+    
+    node_T *neigh_node;
+    // Warning! This algorithm check number of neighbors of individual nodes based on fact that everyone neigh_T should have cost diffrent than zero, so all node must have at least one empty element in the graph array.
+    for (size_t neigh = 0U; (current_node->neigh[neigh].cost != 0) && !graph_get_node(current_node->neigh[neigh].node, &neigh_node); neigh++) {
+        if (!neigh_node->visited) {
             if (return_counter) {
                 path_iter++; // now we will fill new path 
                 edge_iter -= return_counter; // start fill from core path
@@ -119,56 +92,79 @@ size_t dfs(size_t node_number) {
             }
             paths_with_cost[path_iter].edge[edge_iter].edge_node_x = node_number; // first edge node is current node
             paths_with_cost[path_iter].edge[edge_iter].edge_node_y = current_node->neigh[neigh].node;
-            edge_iter++;    // next edge
-            dfs(current_node->neigh[neigh].node);   // recursive call
-            graph[current_node->neigh[neigh].node].visited = false; // set visited flag to false as Mr. Fortuna said
-            return_counter++;   // we come back from dfs so return counter should be incremented
+            edge_iter++; // next edge
+            dfs(current_node->neigh[neigh].node); // recursive call
+            neigh_node->visited = false; // set visited flag to false as Mr. Fortuna said
+            return_counter++; // we come back from dfs so return counter should be incremented
+        }
+    }
+    return path_iter + 1;
+}
+
+size_t graph_get_neigh_cost(node_T *node, size_t neigh_node_number) {
+    for (size_t neigh = 0; neigh < MAX_NEIGH; neigh++) {
+        if (node->neigh[neigh].node == neigh_node_number) {
+            return node->neigh[neigh].cost;
+        }
+    }
+    return -1;
+}
+
+void cost_filtering(size_t path_iter) {
+    size_t edge = 0;
+    node_T *current_node;
+
+    for (size_t path = 0U; path < path_iter; path++) {  // iterate through all paths
+        path_with_cost_T *current_path = &paths_with_cost[path];
+        for (edge = 0U; edge < MAX_NEIGH &&
+            ({graph_get_node(current_path->edge[edge].edge_node_x, &current_node); (paths_with_cost[path].cost + graph_get_neigh_cost(current_node, current_path->edge[edge].edge_node_y) <= MAX_COST);});
+            edge++) { // iterate through all edge
+            current_path->cost += graph_get_neigh_cost(current_node, current_path->edge[edge].edge_node_y);
+        }
+        current_path->number_of_visited_chambers = edge;
+        memset(&current_path->edge[edge], 0, (MAX_NEIGH - edge) * sizeof(edge_T));  // why? kuuuuurwea
+    }
+}
+
+int main(void) {
+    size_t path_counter = dfs(1);
+
+    printf("Available paths before cost consideration:\n");
+    for (size_t path = 0U; path < path_counter; path++) {
+        path_with_cost_T *current_path = &paths_with_cost[path];
+        printf("%lu. ", path + 1);
+        /* Node value cannot be equal zero */
+        for(size_t edge = 0; (current_path->edge[edge].edge_node_x != 0) && (edge < MAX_NEIGH); edge++) {
+            printf("%lu -> %lu; ", current_path->edge[edge].edge_node_x, current_path->edge[edge].edge_node_y);
+        }
+        printf("\n");
+    }
+
+    cost_filtering(path_counter);
+
+    printf("\n\n\nAvailable paths after cost consideration:\n");
+    size_t max_number_of_visited_chambers = 0;
+    for (size_t path = 0U; path < path_counter; path++) {
+        path_with_cost_T *current_path = &paths_with_cost[path];
+        printf("%lu. ", path + 1);
+        /* Node value cannot be equal zero */
+        for(size_t edge = 0; (current_path->edge[edge].edge_node_x != 0) && (edge < MAX_NEIGH); edge++) {
+            printf("%lu -> %lu; ", current_path->edge[edge].edge_node_x, current_path->edge[edge].edge_node_y);
+        }
+
+        if (max_number_of_visited_chambers < current_path->number_of_visited_chambers) {
+            max_number_of_visited_chambers = current_path->number_of_visited_chambers;
+        }
+        printf("Cost of this path: %lu\n", current_path->cost);
+    }
+
+    printf("\n\n\nBest path/s: \n");
+    for (size_t path = 0U; path < path_counter; path++) {
+        path_with_cost_T *current_path = &paths_with_cost[path];
+        if (current_path->number_of_visited_chambers == max_number_of_visited_chambers) {
+            printf("%lu. ", path + 1);
         }
     }
 
-    return path_iter;
-}
-
-// void cost_filtering(size_t path_iter) {
-//     size_t node = 0;
-//     size_t edge = 0;
-//     size_t neigh = 0;
-
-//     for (size_t path = 0U; path < path_iter; path++) {  // iterate through all paths
-//         for (edge = 0U; edge < MAX_NEIGH && paths_with_cost[path].cost <= MAX_COST; edge++) { // iterate through all edge  // ToDo equal?    
-//             for (neigh = 0U; neigh < MAX_NEIGH; neigh++){   
-//                 if (paths_with_cost[path].edge[edge].edge_node_y == graph[paths_with_cost[path].edge[edge].edge_node_x][neigh].node) {
-//                     paths_with_cost[path].cost += graph[paths_with_cost[path].edge[edge].edge_node_x][neigh].cost;
-//                     break;
-//                 }
-//             }
-//         }
-//         edge--;
-//         paths_with_cost[path].cost -= graph[paths_with_cost[path].edge[edge].edge_node_x][neigh].cost;
-//         memset(&paths_with_cost[path].edge[edge], 0, (MAX_NEIGH - edge) * sizeof(edge_T));  // why? kuuuuurwea
-//         break;
-//     }
-// }
-
-int main(void) {
-    // graph_array_settings settings;
-    // if (read_graph_data(GRAPH_FILE_NAME, &settings)) {
-    //     printf("Errno: %s\n", strerror(errno));
-    //     return 1;
-    // }
-
-    // uint32_t (*graph_array)[settings.y_qty][settings.x_qty] = (uint32_t(*)[settings.y_qty][settings.x_qty])settings.pointer;
-
-    // for(size_t y = 0U; y < settings.y_qty; y++) {
-    //     for(size_t x = 0U; x < settings.x_qty; x++) {
-    //         printf("%u ", (*graph_array)[y][x]);
-    //     }
-    //     printf("\n");
-    // }
-
-    // free(graph_array);
-
-    size_t path_counter = dfs(1);
-    // cost_filtering(path_counter);
     return 0;
 }
