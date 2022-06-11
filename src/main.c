@@ -6,118 +6,149 @@
 #include "file_read.h"
 
 #define GRAPH_FILE_NAME "/home/kwit666/Documents/Karol/Studia/Semestr 8/NKRWZMWO/projekt/graph.txt"
-#define TOP_NUMBER (7 + 1)
+#define NODE_NUMBER 7
 #define MAX_NEIGH 10
-#define TOP_NUMBER_POWER 3125
-#define MAX_COST 5
+#define NODE_NUMBER_POWER 3125
+#define MAX_COST 6
 typedef struct {
-    size_t top;
+    size_t node;
     size_t cost;
-} neigh;
+} neigh_T;
 
 typedef struct {
-    size_t edge_top_x;
-    size_t edge_top_y;
-} edge;
+    bool visited;
+    size_t base_node;
+    neigh_T neigh[MAX_NEIGH];
+} node_T;
+
+typedef struct {
+    size_t edge_node_x;
+    size_t edge_node_y;
+} edge_T;
 
 typedef struct {
     size_t cost;
-    size_t edge[MAX_NEIGH];
-} path_with_cost;
+    edge_T edge[MAX_NEIGH + 1]; // this '+1' is required during checking neighbors number in dfs function
+} path_with_cost_T; 
 
-neigh graph[TOP_NUMBER][MAX_NEIGH] = {
-    [1] = {{.top = 2, .cost = 3}},
-    [2] = {
-            [0] = {.top = 1, .cost = 2},
-            [1] = {.top = 3, .cost = 1},
-            [2] = {.top = 4, .cost = 3},
-            [3] = {.top = 5, .cost = 7},
-            [4] = {.top = 7, .cost = 7}
-    },
-    [3] = {
-            [0] = {.top = 2, .cost = 1},
-            [1] = {.top = 4, .cost = 4},
-    },
-    [4] = {
-            [0] = {.top = 2, .cost = 1},
-            [1] = {.top = 3, .cost = 4},
-            [2] = {.top = 5, .cost = 8},
-    },
-    [5] = {
-            [0] = {.top = 2, .cost = 6},
-            [1] = {.top = 4, .cost = 9},
-    },
-    [6] = {
-            [0] = {.top = 7, .cost = 6}
-    },
-    [7] = {
-            [0] = {.top = 6, .cost = 6},
-            [1] = {.top = 2, .cost = 6}
-    }
+node_T graph[NODE_NUMBER] = {
+    {.base_node = 1,    .neigh[0] = {.node = 2, .cost = 3}},
+    {.base_node = 2,    .neigh[0] = {.node = 1, .cost = 2},
+                        .neigh[1] = {.node = 3, .cost = 1},
+                        .neigh[2] = {.node = 4, .cost = 3},
+                        .neigh[3] = {.node = 5, .cost = 7},
+                        .neigh[4] = {.node = 7, .cost = 7}},
+    {.base_node = 3,    .neigh[0] = {.node = 2, .cost = 1},
+                        .neigh[1] = {.node = 4, .cost = 4},},
+    {.base_node = 4,    .neigh[0] = {.node = 2, .cost = 1},
+                        .neigh[1] = {.node = 3, .cost = 4},
+                        .neigh[2] = {.node = 5, .cost = 8},},
+    {.base_node = 5,    .neigh[0] = {.node = 2, .cost = 6},
+                        .neigh[1] = {.node = 4, .cost = 9},},
+    {.base_node = 6,    .neigh[0] = {.node = 7, .cost = 6}},
+    {.base_node = 7,    .neigh[0] = {.node = 6, .cost = 6},
+                        .neigh[1] = {.node = 2, .cost = 6},}
 };
 
-path_with_cost paths_with_cost[TOP_NUMBER_POWER];
-edge paths[TOP_NUMBER_POWER][TOP_NUMBER];
-bool visited[TOP_NUMBER];
+// neigh_T graph[NODE_NUMBER][MAX_NEIGH] = {
+//     [1] = {{.node = 2, .cost = 3}},
+//     [2] = {
+//             [0] = {.node = 1, .cost = 2},
+//             [1] = {.node = 3, .cost = 1},
+//             [2] = {.node = 4, .cost = 3},
+//             [3] = {.node = 5, .cost = 7},
+//             [4] = {.node = 7, .cost = 7}
+//     },
+//     [3] = {
+//             [0] = {.node = 2, .cost = 1},
+//             [1] = {.node = 4, .cost = 4},
+//     },
+//     [4] = {
+//             [0] = {.node = 2, .cost = 1},
+//             [1] = {.node = 3, .cost = 4},
+//             [2] = {.node = 5, .cost = 8},
+//     },
+//     [5] = {
+//             [0] = {.node = 2, .cost = 6},
+//             [1] = {.node = 4, .cost = 9},
+//     },
+//     [6] = {
+//             [0] = {.node = 7, .cost = 6}
+//     },
+//     [7] = {
+//             [0] = {.node = 6, .cost = 6},
+//             [1] = {.node = 2, .cost = 6}
+//     }
+// };
 
+path_with_cost_T paths_with_cost[NODE_NUMBER_POWER];
 
-size_t dfs(size_t current_top) {
+size_t dfs(size_t node_number) {
     static size_t edge_iter = 0;
     static size_t path_iter = 0;
     static size_t return_counter = 0;
+    node_T *current_node;
 
-    visited[current_top] = true;
+    // find current node in graph array
+    for (size_t node = 0; node < NODE_NUMBER; node++) {
+        if (node_number == graph[node].base_node) {
+            current_node = &graph[node];
+        }
+    }
 
-    size_t top_neigh_num = 0U;
-    for (size_t i = 0U; i < MAX_NEIGH; i++) {
-        if (graph[current_top][i].cost == 0U) {
-            top_neigh_num = i;
+    current_node->visited = true;
+
+    // here we check how much neighbors have current node, to do that all node must have at least one empty element in the array
+    size_t node_neigh_num = 0U;
+    for (size_t neigh = 0U; neigh < MAX_NEIGH; neigh++) {
+        if (current_node->neigh[neigh].cost == 0U) {
+            node_neigh_num = neigh;
             break;
         }
     }
 
-    for (size_t neigh = 0U; neigh < top_neigh_num; neigh++) {
-        if (!visited[graph[current_top][neigh].top]) {
+    for (size_t neigh = 0U; neigh < node_neigh_num; neigh++) {
+        // if (!visited[graph[current_node][neigh].node]) {
+        if (!graph[current_node->neigh[neigh].node].visited) {
             if (return_counter) {
-                path_iter++;
-                edge_iter -= return_counter;
-                memcpy(&paths[path_iter][0], &paths[path_iter - 1][0], sizeof(edge) * edge_iter);
-                return_counter = 0;
+                path_iter++; // now we will fill new path 
+                edge_iter -= return_counter; // start fill from core path
+                /* here we copy only core path */
+                memcpy(&paths_with_cost[path_iter].edge[0], &paths_with_cost[path_iter - 1].edge[0], sizeof(edge_T) * edge_iter);
+                return_counter = 0; //return counter is reset only when next neighbor is not visited
             }
-            paths[path_iter][edge_iter].edge_top_x = current_top;
-            paths[path_iter][edge_iter].edge_top_y = graph[current_top][neigh].top;
-            edge_iter++;
-            dfs(graph[current_top][neigh].top);
-            visited[graph[current_top][neigh].top] = false;
-            return_counter++;
+            paths_with_cost[path_iter].edge[edge_iter].edge_node_x = node_number; // first edge node is current node
+            paths_with_cost[path_iter].edge[edge_iter].edge_node_y = current_node->neigh[neigh].node;
+            edge_iter++;    // next edge
+            dfs(current_node->neigh[neigh].node);   // recursive call
+            graph[current_node->neigh[neigh].node].visited = false; // set visited flag to false as Mr. Fortuna said
+            return_counter++;   // we come back from dfs so return counter should be incremented
         }
     }
 
     return path_iter;
 }
 
-void cost_filtering(size_t path_iter) {
-    size_t path_cost = 0;
-    size_t top = 0;
-    size_t tmp_path_cost = 0;
+// void cost_filtering(size_t path_iter) {
+//     size_t node = 0;
+//     size_t edge = 0;
+//     size_t neigh = 0;
 
-    for (size_t path = 0U; path < path_iter; path++) {
-        for (size_t edge = 0U; edge < MAX_NEIGH; edge++) {
-            for (size_t neigh = 0U; neigh < MAX_NEIGH; neigh++){
-                if (paths[path][edge].edge_top_y == graph[paths[path][edge].edge_top_x][neigh].top) {
-                    tmp_path_cost += graph[paths[path][edge].edge_top_x][neigh].cost;
-                    break;
-                }
-            }
-            if (tmp_path_cost > MAX_COST) {
-                break;
-            } else {
-                path_cost = tmp_path_cost;
-            }
-        }
-        memcpy(paths);
-    }
-}
+//     for (size_t path = 0U; path < path_iter; path++) {  // iterate through all paths
+//         for (edge = 0U; edge < MAX_NEIGH && paths_with_cost[path].cost <= MAX_COST; edge++) { // iterate through all edge  // ToDo equal?    
+//             for (neigh = 0U; neigh < MAX_NEIGH; neigh++){   
+//                 if (paths_with_cost[path].edge[edge].edge_node_y == graph[paths_with_cost[path].edge[edge].edge_node_x][neigh].node) {
+//                     paths_with_cost[path].cost += graph[paths_with_cost[path].edge[edge].edge_node_x][neigh].cost;
+//                     break;
+//                 }
+//             }
+//         }
+//         edge--;
+//         paths_with_cost[path].cost -= graph[paths_with_cost[path].edge[edge].edge_node_x][neigh].cost;
+//         memset(&paths_with_cost[path].edge[edge], 0, (MAX_NEIGH - edge) * sizeof(edge_T));  // why? kuuuuurwea
+//         break;
+//     }
+// }
 
 int main(void) {
     // graph_array_settings settings;
@@ -137,6 +168,7 @@ int main(void) {
 
     // free(graph_array);
 
-    dfs(1);
+    size_t path_counter = dfs(1);
+    // cost_filtering(path_counter);
     return 0;
 }
