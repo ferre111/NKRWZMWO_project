@@ -6,23 +6,31 @@
 
 #include "file_read.h"
 
+#define MAX_FIELD_STRING_LENGTH 10
+
+typedef enum {
+    FIELD_FIRST_NODE,
+    FIELD_SECOND_NODE,
+    FIELD_EDGE_COST
+
+} file_format_field_T;
+
 static int32_t get_size(char *file_name, size_t *x_qty, size_t *y_qty, size_t *max_char_per_line_no);
 
-int32_t read_graph_data(char *file_name, graph_array_settings *settings) {
+int32_t read_graph_data(void) {
     FILE * file_ptr;
-    char c = 0U;
-    size_t x_qty = 0U; 
-    size_t y_qty = 0U;
-    size_t max_char_per_line_no = 0U;
-    
-    if (NULL == settings || NULL == file_name) {
-        return 1;
-    }
+    file_format_field_T field;
+    char c;
+    char field_string[MAX_FIELD_STRING_LENGTH] = "";
+    size_t node_index;
+    size_t neighbour_index;
+    unsigned int i;
+    char file_name[] = "Graph.txt";
 
-    if(get_size(file_name, &x_qty, &y_qty, &max_char_per_line_no)) {
-        return 1;
-    }
-    
+    field = FIELD_FIRST_NODE;
+    node_index = 0U;
+    neighbour_index = 0U;
+    i = 0U;
     file_ptr = fopen(file_name, "r");
 
     if (NULL == file_ptr) {
@@ -30,40 +38,55 @@ int32_t read_graph_data(char *file_name, graph_array_settings *settings) {
         return 1;
     }
 
-    uint32_t (*graph_array)[y_qty][x_qty];
-    char line[max_char_per_line_no];
-    char *element;
+    for(;;){
+        c = fgetc(file_ptr);
 
-    graph_array = calloc(1, sizeof(*graph_array));
-
-    if (NULL == graph_array) {
-        fclose(file_ptr);
-        free(graph_array);
-        return 1;
-    }
-
-    for(size_t y = 0U; y < y_qty; y++) {
-        if(NULL == fgets((char *)line, max_char_per_line_no, file_ptr)){
-            fclose(file_ptr);
-            free(graph_array);
-            return 1;
+        if (c == EOF) {
+            break;
         }
-        
-        element = strtok((char *)line, ";");
-        for(size_t x = 0U; x < x_qty; x++){
-            (*graph_array)[y][x] = atoi((char*)element);
-            element = strtok(NULL, ";");
-            if (NULL == element) {
-                fclose(file_ptr);
-                free(graph_array);
-                return 1;
+        else if (c == '\n') {
+            node_index++;
+            neighbour_index = 0U;
+        }
+        else if ((c == ',') || (c == ';')) {
+            i = 0U;
+
+            switch (field)
+            {
+                case FIELD_FIRST_NODE:
+                    graph[node_index].base_node = atoi(field_string);
+                    memset(field_string, 0u, sizeof(field_string));
+
+                    field = FIELD_SECOND_NODE;
+                    break;
+
+                case FIELD_SECOND_NODE:
+                    graph[node_index].neigh[neighbour_index].node = atoi(field_string);
+                    memset(field_string, 0u, sizeof(field_string));
+
+                    field = FIELD_EDGE_COST;
+                    break;
+
+                case FIELD_EDGE_COST:
+                    graph[node_index].neigh[neighbour_index].cost = atoi(field_string);
+                    memset(field_string, 0u, sizeof(field_string));
+
+                    field = FIELD_FIRST_NODE;
+                    break;
+
+                default:
+                    break;
+            }
+
+            if (c == ';') {
+                neighbour_index++;
             }
         }
+        else {
+            field_string[i] = c;
+            i++;
+        }
     }
-
-    settings->pointer = (void*)graph_array;
-    settings->x_qty = x_qty;
-    settings->y_qty = y_qty;
 
     fclose(file_ptr);
     return 0;
