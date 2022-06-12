@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define NODES_NUMBER 7
+#define NODES_MAX_NUMBER 20
 #define MAX_NEIGH 10
 #define NODE_NUMBER_POWER 3125
 
@@ -33,7 +33,7 @@ typedef struct {
 } path_with_cost_T;
 
 extern path_with_cost_T paths_with_cost[NODE_NUMBER_POWER];
-extern node_T graph[NODES_NUMBER];
+extern node_T graph[NODES_MAX_NUMBER];
 
 size_t dfs(size_t node_number, node_T *graph);
 void cost_filtering(size_t path_iter, node_T *graph);

@@ -11,6 +11,10 @@
 **/
 
 int main(void) {
+    if (0U != read_graph_data()) {
+        return 1;
+    }
+
     size_t path_counter = dfs(1, graph);
 
     printf("Available paths before cost consideration:\n");

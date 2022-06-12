@@ -1,29 +1,13 @@
 #include "dfs.h"
 #include <string.h>
 
-node_T graph[NODES_NUMBER] = {
-    {.base_node = 1,    .neigh[0] = {.node = 2, .cost = 3}},
-    {.base_node = 2,    .neigh[0] = {.node = 1, .cost = 2},
-                        .neigh[1] = {.node = 3, .cost = 1},
-                        .neigh[2] = {.node = 4, .cost = 3},
-                        .neigh[3] = {.node = 5, .cost = 7},
-                        .neigh[4] = {.node = 7, .cost = 7}},
-    {.base_node = 3,    .neigh[0] = {.node = 2, .cost = 1},
-                        .neigh[1] = {.node = 4, .cost = 4},},
-    {.base_node = 4,    .neigh[0] = {.node = 2, .cost = 1},
-                        .neigh[1] = {.node = 3, .cost = 4},
-                        .neigh[2] = {.node = 5, .cost = 8},},
-    {.base_node = 5,    .neigh[0] = {.node = 2, .cost = 6},
-                        .neigh[1] = {.node = 4, .cost = 9},},
-    {.base_node = 6,    .neigh[0] = {.node = 7, .cost = 6}},
-    {.base_node = 7,    .neigh[0] = {.node = 6, .cost = 6},
-                        .neigh[1] = {.node = 2, .cost = 6},}
-};
+
+node_T graph[NODES_MAX_NUMBER] = { };
 
 path_with_cost_T paths_with_cost[NODE_NUMBER_POWER];
 
 static int graph_get_node(size_t node_number, node_T **node_ptr) {
-    for (size_t node = 0; node < NODES_NUMBER; node++) {
+    for (size_t node = 0; node < NODES_MAX_NUMBER; node++) {
         if (node_number == graph[node].base_node) {
             *node_ptr = &graph[node];
             return 0;
@@ -91,6 +75,6 @@ void cost_filtering(size_t path_iter, node_T *graph) {
             current_path->cost += graph_get_neigh_cost(current_node, current_path->edge[edge].edge_node_y);
         }
         current_path->number_of_visited_chambers = edge;
-        memset(&current_path->edge[edge], 0, (MAX_NEIGH - edge) * sizeof(edge_T));  // why? kuuuuurwea
+        memset(&current_path->edge[edge], 0, (MAX_NEIGH - edge) * sizeof(edge_T));  // why?
     }
 }
