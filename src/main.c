@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "file_read.h"
-#include "dfs.h"
+#include "../inc/file_read.h"
+#include "../inc/dfs.h"
 
 /* WARNING!
  * Algorithm check number of neighbors of individual nodes based on fact that each neigh_T element should have cost diffrent than zero, so all node must have at least one empty element in the graph array.

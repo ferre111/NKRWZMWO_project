@@ -1,4 +1,4 @@
-#include "dfs.h"
+#include "../inc/dfs.h"
 #include <string.h>
 
 

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <errno.h>
 
-#include "file_read.h"
+#include "../inc/file_read.h"
 
 #define MAX_FIELD_STRING_LENGTH 10
 
